@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "args": ["/c/path/to/project/tools/jira-mcp/mcp-jira.sh"],
+      "env": {
+        "JIRA_URL": "http://localhost:8080",
+        "JIRA_PERSONAL_TOKEN": "${JIRA_PAT}",
+        "JIRA_SSL_VERIFY": "false",
+        "READ_ONLY_MODE": "true"
+      }
+    }
+  }
+}

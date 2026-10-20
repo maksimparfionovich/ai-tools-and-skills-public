@@ -1,0 +1,7 @@
+{
+  "root": "",
+  "hook_dirs": ["."],
+  "skip_files": ["CLAUDE.md", "AGENTS.md", "SKILL.md", "README.md", "MEMORY.md"],
+  "stands": ["demo[12]", "perf"],
+  "dimensions": []
+}

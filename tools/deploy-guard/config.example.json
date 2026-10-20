@@ -1,0 +1,7 @@
+{
+  "release_substring": "release",
+  "prod_words": ["prod", "uat"],
+  "gitops_markers": ["argocd", "gitops"],
+  "gitops_protected_branches": ["main", "master"],
+  "block_github_release": true
+}

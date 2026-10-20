@@ -1,0 +1,17 @@
+{
+  "env": { "MCP_TIMEOUT": "240000" },
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash|PowerShell",
+        "hooks": [{ "type": "command",
+                    "command": "python C:/path/to/project/tools/deploy-guard/guard.py",
+                    "timeout": 15 }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Write|Edit|MultiEdit",
+        "hooks": [{ "type": "command",
+                    "command": "python C:/path/to/project/tools/qa-report-lint/lint.py --hook",
+                    "timeout": 20 }] }
+    ]
+  }
+}

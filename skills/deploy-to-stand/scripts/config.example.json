@@ -1,0 +1,49 @@
+{
+  "_comment": "Пример. Скопируйте в config.local.json рядом со stand_tag.py и опишите свои репозитории. Поля — SKILL.md, «Настройка».",
+  "repos_root": "~/work/repos",
+  "own_stands": ["qa1", "qa2"],
+  "never_target": ["prod", "uat"],
+  "release_substring": "release",
+  "ci_tokens": ["dev1", "dev2", "qa1", "qa2", "qa3", "demo", "prod", "uat"],
+  "max_tag": 100,
+  "dead_runners": ["old-self-hosted-runner"],
+  "github_actions_url": "https://github.com/example-org/{repo}/actions",
+  "repos": {
+    "backend": {
+      "kind": "tag",
+      "path": "backend",
+      "default": "main",
+      "wf": "build.yml",
+      "blob": "",
+      "tag_tokens": ["dev1", "dev2", "qa1", "qa2", "qa3"],
+      "stops": {
+        "demo": "у backend в CI нет demo: тег соберёт образ, но не выкатит. На demo версию ставят руками в gitops."
+      }
+    },
+    "frontend": {
+      "kind": "tag",
+      "path": "frontend",
+      "default": "main",
+      "wf": "build.yml",
+      "blob": "",
+      "tag_tokens": ["dev1", "dev2", "qa1", "qa2", "qa3", "demo", "uat"],
+      "special": {
+        "storybook": "слово 'storybook' в теге — соберётся только Storybook"
+      }
+    },
+    "landings": {
+      "kind": "project",
+      "path": "landings",
+      "default": "main",
+      "projects": {
+        "promo": { "wf": "promo-build.yml", "blob": "", "stands": ["qa1", "qa2"] },
+        "event": { "wf": "event-build.yml", "blob": "", "stands": ["qa1", "qa2", "demo"] }
+      },
+      "catalog": { "code": "lp", "wf": "all-build.yml", "blob": "", "stands": ["qa1", "qa2"] }
+    }
+  },
+  "excluded": {
+    "legacy-site": "катится только публикацией GitHub Release, любой релиз без -rc уезжает на прод — это делает человек.",
+    "gitops": "gitops-репозиторий, выкатки тегом нет: правки — веткой и PR, main не трогать."
+  }
+}

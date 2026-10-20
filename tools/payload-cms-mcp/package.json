@@ -1,0 +1,32 @@
+{
+  "name": "payload-cms-mcp",
+  "version": "0.3.1",
+  "private": true,
+  "description": "MCP server for creating and editing Payload CMS content (articles, authors, tags, categories, media, any collection) via the Payload REST API, with a write guard for prod. Designed for Claude Code and Claude Desktop.",
+  "type": "module",
+  "bin": {
+    "payload-cms-mcp": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "sync-schema": "tsx scripts/sync-schema.ts",
+    "smoke": "tsx scripts/smoke-test.ts",
+    "test": "tsx scripts/guard-test.ts && tsx scripts/client-test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "undici": "^6.26.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

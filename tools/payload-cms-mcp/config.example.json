@@ -1,0 +1,5 @@
+{
+  "CMS_ALLOW_WRITE_HOSTS": "cms-dev*.example.com,cms-qa*.example.com",
+  "CMS_READONLY_HOSTS": "cms.example.com,*.prod.example.com",
+  "CMS_LOCALES": "en,de,es,fr"
+}

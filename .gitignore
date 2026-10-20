@@ -1,0 +1,31 @@
+# Секреты
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+config.env
+
+# Данные вашей инфраструктуры: адреса, стенды, карта окружений.
+# Рядом с каждым таким файлом лежит пример (*.example.*), его и копируйте.
+local.md
+config.local.json
+presets.local.json
+schema.snapshot.json
+
+# Сборка и зависимости
+node_modules/
+dist/
+*.exe
+tools/**/lokilogs
+skills/**/lokilogs
+__pycache__/
+*.pyc
+
+# Сгенерированное установщиками
+tools/jira-mcp/watchdog-hidden.vbs
+
+# Логи и мусор ОС
+*.log
+.DS_Store
+Thumbs.db

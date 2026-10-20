@@ -1,0 +1,11 @@
+{
+  "_comment": "Пример. Скопируйте в config.local.json рядом с menu_seed.py.",
+  "prod_graphql": "https://cms.example.com/api/graphql",
+  "stand_graphql": "https://cms-{stand}.example.com/api/graphql",
+  "repo": "~/work/repos/cms",
+  "seed_path": "src/scripts/data/menu-seed.json",
+  "locales": ["en", "de", "es", "fr"],
+  "copy_from": {"fr": "en"},
+  "user_agent": "curl/8.9.1",
+  "category_from_graphql": {"mobile_left": "mobile-left", "mobile_right": "mobile-right"}
+}

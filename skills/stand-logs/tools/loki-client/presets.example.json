@@ -1,0 +1,20 @@
+{
+  "stand_aliases": {
+    "prod": ["shop-prod-eu", "shop-prod-us"],
+    "prod-eu": ["shop-prod-eu"],
+    "prod-us": ["shop-prod-us"],
+    "ingress": ["ingress-nginx"]
+  },
+  "app_groups": {
+    "web": ["frontend", "backend"],
+    "workers": ["backend-search-worker", "backend-mail-worker"],
+    "ingress": ["ingress-nginx"],
+    "all": null
+  },
+  "namespace_groups": [
+    {"names": ["demo", "shop-prod-eu", "shop-prod-us"], "group": "web"},
+    {"names": ["ingress-nginx"], "group": "ingress"},
+    {"match": "^(dev|qa)[0-9]+$", "group": "web"}
+  ],
+  "syslog_scale_apps": ["frontend"]
+}

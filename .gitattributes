@@ -1,0 +1,6 @@
+# Переводы строк в репозитории — всегда LF, и при checkout на Windows тоже:
+# bash не запускает .sh с CRLF («$'\r': command not found»).
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary

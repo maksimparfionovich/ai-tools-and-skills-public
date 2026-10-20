@@ -1,0 +1,50 @@
+{
+  "_comment": "Пример. Скопируйте в config.local.json рядом с env_diff.py. Поля — README.md, «Настройка».",
+  "repos_root": "~/work/repos",
+  "layout": {
+    "apps_dir": "apps",
+    "enable_suffix": "-enabled",
+    "stand_var": "stand_code",
+    "franchise_var": "region_base"
+  },
+  "gitops": {
+    "stands": {
+      "path": "gitops-stands",
+      "label": "gitops-stands",
+      "kind": "stands",
+      "stands": ["dev1", "dev2", "qa1", "qa2"]
+    },
+    "prod": {
+      "path": "gitops-prod",
+      "label": "gitops-prod",
+      "kind": "regional",
+      "center": "prod",
+      "aliases": { "prod": "prod", "eu": "prod", "us": "us", "us-east": "us", "asia": "asia" },
+      "common_hint": "прод и все регионы",
+      "secrets_hint": "секретные значения — в хранилище секретов, в git только имя секрета"
+    }
+  },
+  "platform_vars": ["MY_PLATFORM_INJECTED_VAR"],
+  "services": {
+    "backend": {
+      "repo": "backend",
+      "gitops_apps": ["backend"],
+      "kind": "ts",
+      "paths": ["src", ":(exclude)src/scripts", ":(exclude)src/**/*.test.ts"],
+      "dynamic_literals": true,
+      "note": "воркеры — отдельные приложения gitops; --app backend-worker"
+    },
+    "frontend": {
+      "repo": "frontend",
+      "gitops_apps": ["frontend"],
+      "kind": "nuxt",
+      "paths": ["nuxt.config.ts", "server", "src", ":(exclude)src/**/*.spec.ts"]
+    },
+    "prices": {
+      "repo": "prices",
+      "gitops_apps": ["prices"],
+      "kind": "go",
+      "paths": ["internal", "cmd", ":(exclude)**/*_test.go"]
+    }
+  }
+}

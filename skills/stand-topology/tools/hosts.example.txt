@@ -1,0 +1,18 @@
+# Хосты для probe-hosts.sh. Скопируйте в hosts.local.txt и впишите свои.
+# Группы — в квадратных скобках; запуск по группе: bash probe-hosts.sh prod
+
+[prod]
+example.com
+www.example.com
+cms.example.com
+api.example.com
+
+[stands]
+qa1.stands.example.dev
+qa2.stands.example.dev
+cms-qa1.stands.example.dev
+cms-qa2.stands.example.dev
+
+# Хосты, которые в карте помечены мёртвыми: если оживут — обновить карту.
+[dead]
+old-cms.example.com
