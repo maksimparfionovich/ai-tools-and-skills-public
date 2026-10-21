@@ -23,7 +23,7 @@ QA-работе: тестирование веток и релизов на dev/
 
 | Инструмент | Что делает |
 | --- | --- |
-| `payload-cms-mcp` | MCP-сервер для Payload CMS: создание и правка статей, авторов, тегов, категорий, медиа и любых коллекций — тестовые данные на dev/qa-стендах. Защита от записи в коде: пишет только на `localhost` и разрешённые хосты, прод и UAT — только чтение |
+| `payload-cms-mcp` | MCP-сервер для Payload CMS: создание и правка статей, авторов, тегов, категорий, медиа и любых коллекций — тестовые данные на dev/qa-стендах, на нескольких стендах одновременно (стенд — в каждом вызове). Защита от записи в коде: пишет только на `localhost` и разрешённые хосты, прод и UAT — только чтение |
 | `jira-mcp` | Подключение Claude к self-hosted Jira за Teleport: скрипты сами поднимают туннель и держат его живым (Windows — Планировщик задач, macOS/Linux — cron); по умолчанию только чтение |
 | `qa-report-lint` | Линтер тест-планов и QA-отчётов, работает хуком после записи файла: `PASS` без прогона, вердикт без основания, баг без причины и происхождения, отчёт без тест-плана, кейс плана без вердикта, обозначения без расшифровки (правила E1–E16). Шаблоны плана и отчёта — в `templates/` |
 | `deploy-guard` | Хук перед shell-командами: технически блокирует выкатку на прод и UAT (теги с `release`/`prod`/`uat`, `push --tags`, пуш и мерж в `main` gitops-репозиториев — ветки туда пушить можно, GitHub Release) |
@@ -53,7 +53,7 @@ Go 1.26+ (сборка `lokilogs`), bash и `git`; на Windows — Git for Wind
    | `tools/<инструмент>/config.example.json` | `config.local.json` рядом (qa-report-lint, deploy-guard — по желанию; env-diff, menu-seed — обязательно) |
    | `tools/jira-mcp/config.env.example` | `config.env` рядом |
    | `tools/payload-cms-mcp/.env.example` | почта и пароль — в конфиге MCP-клиента (`.env` — только для `npm run smoke`) |
-   | `tools/payload-cms-mcp/config.example.json` | `config.local.json` рядом — хосты для записи, read-only хосты, локали |
+   | `tools/payload-cms-mcp/config.example.json` | `config.local.json` рядом — стенды по именам, хосты для записи, read-only хосты, локали |
 
    Все эти файлы перечислены в `.gitignore` — в git они не попадут.
 4. **Правила для агента.** Раздел из `docs/claude-md-rules.md` — в `CLAUDE.md` проекта.

@@ -1,6 +1,6 @@
 {
   "name": "payload-cms-mcp",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "MCP server for creating and editing Payload CMS content (articles, authors, tags, categories, media, any collection) via the Payload REST API, with a write guard for prod. Designed for Claude Code and Claude Desktop.",
   "type": "module",
@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "sync-schema": "tsx scripts/sync-schema.ts",
     "smoke": "tsx scripts/smoke-test.ts",
-    "test": "tsx scripts/guard-test.ts && tsx scripts/client-test.ts"
+    "smoke:targets": "tsx scripts/smoke-targets.ts",
+    "test": "tsx scripts/guard-test.ts && tsx scripts/client-test.ts && tsx scripts/targets-test.ts && tsx scripts/mcp-e2e-test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

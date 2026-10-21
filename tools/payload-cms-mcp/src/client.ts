@@ -56,6 +56,10 @@ export class CmsError extends Error {
   }
 }
 
+/**
+ * One client = one stand: its own base URL, credentials, token or cookie jar.
+ * Several stands at once are several clients (see targets.ts), so their logins never mix.
+ */
 export class PayloadClient {
   // Login mode is detected from the login response: "jwt" (stock Payload) or "cookie" (auth plugin).
   private mode: "jwt" | "cookie" | null = null;
@@ -69,7 +73,7 @@ export class PayloadClient {
   private loginInFlight: Promise<void> | null = null;
   private dispatcher?: ProxyAgent;
 
-  constructor(private cfg: CmsConfig) {
+  constructor(private readonly cfg: Readonly<CmsConfig>) {
     if (cfg.proxyUrl) this.dispatcher = new ProxyAgent(cfg.proxyUrl);
   }
 
@@ -77,21 +81,9 @@ export class PayloadClient {
     return this.cfg.baseUrl;
   }
 
-  /**
-   * Override the target stand (and optionally credentials) at runtime, for the
-   * rest of this server process. Clears the cached token / session cookies so
-   * the next call re-authenticates against the new base URL.
-   */
-  setTarget(opts: { baseUrl?: string; email?: string; password?: string }): {
-    baseUrl: string;
-    email: string;
-  } {
-    if (opts.baseUrl) this.cfg.baseUrl = opts.baseUrl.replace(/\/+$/, "");
-    if (opts.email) this.cfg.email = opts.email;
-    if (opts.password) this.cfg.password = opts.password;
-    this.resetAuth();
-    this.cookies.clear();
-    return { baseUrl: this.cfg.baseUrl, email: this.cfg.email };
+  /** Login state without network or secrets (for cms_list_targets). */
+  get session(): { email: string; mode: "jwt" | "cookie" | null } {
+    return { email: this.cfg.email, mode: this.mode };
   }
 
   // ---------------------------------------------------------------- auth ----
@@ -226,7 +218,7 @@ export class PayloadClient {
     this.sessionDeadline = Math.min(now + this.sessionIdleSec, this.sessionAbsoluteExp);
   }
 
-  /** Forget the login state (the cookie jar is cleared separately: on fresh login / target change). */
+  /** Forget the login state (the cookie jar is cleared separately, on a fresh login). */
   private resetAuth(): void {
     this.mode = null;
     this.token = null;
@@ -278,11 +270,7 @@ export class PayloadClient {
 
   private async raw(method: string, path: string, opts: RawOpts = {}): Promise<Record<string, any>> {
     if (!this.cfg.baseUrl) {
-      throw new CmsError(
-        "No target stand set. Call cms_set_target with the stand base URL first (there is no default CMS_BASE_URL).",
-        0,
-        null,
-      );
+      throw new CmsError("This client has no base URL: pass a stand as `target`.", 0, null);
     }
     const qs = opts.query ? buildQueryString(opts.query) : "";
     const url = `${this.cfg.baseUrl}${path}${qs ? `?${qs}` : ""}`;
