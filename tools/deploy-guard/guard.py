@@ -35,9 +35,11 @@ DEFAULTS = {
 
 PUSH = re.compile(r"\bgit\b.*\bpush\b")
 PUSH_ALL_TAGS = re.compile(r"(?<!\S)--(tags|mirror|follow-tags)\b")
-GH_RELEASE = re.compile(r"\bgh\s+release\s+(create|edit|upload)\b")
-GH_WORKFLOW_RUN = re.compile(r"\bgh\s+workflow\s+run\b")
-GH_PR_MERGE = re.compile(r"\bgh\s+pr\s+merge\b")
+# `gh`, `gh.exe` и вызов по полному пути (`"/c/Program Files/GitHub CLI/gh.exe" release …`).
+GH = r"\bgh(?:\.exe)?[\"']?\s+"
+GH_RELEASE = re.compile(GH + r"release\s+(create|edit|upload)\b")
+GH_WORKFLOW_RUN = re.compile(GH + r"workflow\s+run\b")
+GH_PR_MERGE = re.compile(GH + r"pr\s+merge\b")
 API_WRITE = re.compile(
     r"(-x\s*(post|patch|put)\b|--request\s+(post|patch|put)\b|--method\s+(post|patch|put)\b"
     r"|(?<!\S)(-d|--data\S*|-f|-F|--field|--raw-field|--input)(?=\s|=))",
@@ -165,7 +167,7 @@ def check_segment(seg, whole, cwd, cfg):
     if GH_WORKFLOW_RUN.search(low) and deploy_word:
         return "ручной запуск workflow с prod/uat/release запрещён — прод катит человек."
 
-    if "api.github.com" in low or re.search(r"\bgh\s+api\b", low):
+    if "api.github.com" in low or re.search(GH + r"api\b", low):
         if cfg["block_github_release"] and "/releases" in low and API_WRITE.search(seg):
             return "создание или правка GitHub Release через API запрещены: релиз может уехать на прод."
         if "/dispatches" in low and deploy_word:

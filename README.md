@@ -18,6 +18,7 @@ QA-работе: тестирование веток и релизов на dev/
 | `deploy-to-stand` | Выкатывает ветку на dev/qa-стенд пушем одного git-тега `<стенд>-<ветка>-<время>`, если CI выбирает стенд по слову в теге. По умолчанию — пробный прогон; останавливается на опасных словах в имени ветки (`release`, `prod`, `uat`, чужой стенд), прод и UAT не катит. Правила CI — в настройках |
 | `stand-logs` | Логи подов из Loki по mTLS (стенды и прод) через клиент `lokilogs`: алиасы стендов, группы сервисов, подбор сервисов по namespace, разные шкалы уровней логов у разных сервисов, читаемый вывод JSON-логов |
 | `run-db-script` | Разовый Payload-скрипт в поде бэкенда на стенде (например, реиндекс поиска): вход через `kubectl exec`, выбор реплики или primary, проверка результата. На проде ничего не запускает — готовит команды для человека |
+| `file-issues` | Заведение задач GitHub по найденным дефектам: куда (репозиторий, где исполняют, и доска проекта), заголовок и текст для разработчиков, обязательные исполнитель (автор PR или ветки) и приоритет, проверка дублей, список на подтверждение, создание через `tools/gh-issues`. Люди, шкала приоритета и доска — в `local.md` |
 
 ## Инструменты (`tools/`)
 
@@ -26,9 +27,10 @@ QA-работе: тестирование веток и релизов на dev/
 | `payload-cms-mcp` | MCP-сервер для Payload CMS: создание и правка статей, авторов, тегов, категорий, медиа и любых коллекций — тестовые данные на dev/qa-стендах, на нескольких стендах одновременно (стенд — в каждом вызове). Защита от записи в коде: пишет только на `localhost` и разрешённые хосты, прод и UAT — только чтение |
 | `jira-mcp` | Подключение Claude к self-hosted Jira за Teleport: скрипты сами поднимают туннель и держат его живым (Windows — Планировщик задач, macOS/Linux — cron); по умолчанию только чтение |
 | `qa-report-lint` | Линтер тест-планов и QA-отчётов, работает хуком после записи файла: `PASS` без прогона, вердикт без основания, баг без причины и происхождения, отчёт без тест-плана, кейс плана без вердикта, обозначения без расшифровки (правила E1–E16). Шаблоны плана и отчёта — в `templates/` |
-| `deploy-guard` | Хук перед shell-командами: технически блокирует выкатку на прод и UAT (теги с `release`/`prod`/`uat`, `push --tags`, пуш и мерж в `main` gitops-репозиториев — ветки туда пушить можно, GitHub Release) |
+| `deploy-guard` | Хук перед shell-командами: технически блокирует выкатку на прод и UAT (теги с `release`/`prod`/`uat`, `push --tags`, пуш и мерж в `main` gitops-репозиториев — ветки туда пушить можно, GitHub Release). `gh` узнаёт и как `gh.exe`, и по полному пути |
 | `env-diff` | Какие переменные окружения ждёт код ветки и каких нет в gitops нужного стенда — заранее видно, что ветка упадёт на стенде. Раскладка gitops — ArgoCD ApplicationSet + values, настраивается |
 | `menu-seed` | Снимает меню прода (Payload GraphQL) по всем локалям в JSON-сид для скрипта заливки меню и сверяет меню стенда с сидом |
+| `gh-issues` | Задачи GitHub из файла `ISSUES-*.md` через `gh`: без `--apply` — только план и проверки (исполнитель и приоритет есть, исполнителя можно назначить, метки и вариант приоритета существуют, нет дубля, нет голых маркеров); с `--apply` — задача, приоритет (поле организации), карточка на доске со статусом, сверка и ссылка обратно в файл. `set` — дописать приоритет или исполнителя уже заведённой |
 
 У каждого инструмента и скила свой README или `SKILL.md` с настройкой и запуском.
 
@@ -36,7 +38,8 @@ QA-работе: тестирование веток и релизов на dev/
 
 Нужны: Python 3.8+ (скрипты и хуки; для `env-diff` — ещё PyYAML), Node.js 18.17+ (`payload-cms-mcp`),
 Go 1.26+ (сборка `lokilogs`), bash и `git`; на Windows — Git for Windows (Git Bash). По желанию:
-`tsh` (Teleport) и `kubectl` — для логов, подов и Jira.
+`tsh` (Teleport) и `kubectl` — для логов, подов и Jira; [GitHub CLI](https://cli.github.com/) `gh` со
+входом `--scopes project` — для `gh-issues`.
 
 1. **Склонировать** репозиторий и скопировать в проект то, что нужно: `skills/<имя>/` →
    `<проект>/.claude/skills/<имя>/` (или `~/.claude/skills/<имя>/` — для всех проектов), `tools/` →
@@ -50,7 +53,7 @@ Go 1.26+ (сборка `lokilogs`), bash и `git`; на Windows — Git for Wind
    | `skills/deploy-to-stand/scripts/config.example.json` | `config.local.json` рядом |
    | `skills/stand-logs/tools/loki-client/presets.example.json` | `presets.local.json` рядом с бинарём |
    | `skills/stand-topology/tools/hosts.example.txt` | `hosts.local.txt` рядом |
-   | `tools/<инструмент>/config.example.json` | `config.local.json` рядом (qa-report-lint, deploy-guard — по желанию; env-diff, menu-seed — обязательно) |
+   | `tools/<инструмент>/config.example.json` | `config.local.json` рядом (qa-report-lint, deploy-guard — по желанию; env-diff, menu-seed, gh-issues — обязательно) |
    | `tools/jira-mcp/config.env.example` | `config.env` рядом |
    | `tools/payload-cms-mcp/.env.example` | почта и пароль — в конфиге MCP-клиента (`.env` — только для `npm run smoke`) |
    | `tools/payload-cms-mcp/config.example.json` | `config.local.json` рядом — стенды по именам, хосты для записи, read-only хосты, локали |
@@ -72,6 +75,7 @@ Go 1.26+ (сборка `lokilogs`), bash и `git`; на Windows — Git for Wind
 bash tools/qa-report-lint/tests/run.sh                       # линтер: регресс на фикстурах
 python3 tools/deploy-guard/test_guard.py                     # хук запрета прода
 python3 tools/env-diff/tests/test_env_diff.py                # env-diff на собранном на лету репозитории
+python3 tools/gh-issues/tests/test_gh_issues.py              # gh-issues с подменой gh в памяти
 python3 skills/deploy-to-stand/scripts/test_stand_tag.py     # логика тега без сети
 (cd tools/payload-cms-mcp && npm ci && npm run build && npm test)
 (cd skills/stand-logs/tools/loki-client && go test ./...)

@@ -34,6 +34,10 @@ BLOCK = [
     "curl -X POST https://api.github.com/repos/example-org/backend/actions/workflows/build.yml/dispatches -d '{\"ref\":\"main\",\"inputs\":{\"deploy_target\":\"prod\"}}'",
     "gh api repos/example-org/backend/git/refs -f ref=refs/tags/release-99 -f sha=abc",
     "Git Push origin RELEASE-1",
+    # gh не из PATH: gh.exe и полный путь (Windows, сессия запущена до установки gh)
+    "\"/c/Program Files/GitHub CLI/gh.exe\" release create v2.0.10 --target master",
+    "\"C:\\Program Files\\GitHub CLI\\gh.exe\" workflow run build.yml -f deploy_target=prod",
+    "gh.exe api repos/example-org/site/releases -f tag_name=v3.0.8",
 ]
 
 ALLOW = [
@@ -49,6 +53,8 @@ ALLOW = [
     "git push origin 1a2b3c4d:refs/tags/stage1-production-banner-20261008-072014",
     "echo prod",
     "",
+    "\"/c/Program Files/GitHub CLI/gh.exe\" release list",
+    "gh.exe issue list -R example-org/site --search release",
 ]
 
 # Gitops-репозиторий (маркер в команде или в рабочей папке — второй элемент пары): ветки пушить
@@ -69,6 +75,7 @@ GITOPS_BLOCK = [
     ("git push", "/home/me/argocd-apps"),
     ("gh pr merge 12 --squash -R example-org/argocd-apps", ""),
     ("gh api -X PUT repos/example-org/argocd-apps/pulls/12/merge", ""),
+    ("\"/c/Program Files/GitHub CLI/gh.exe\" pr merge 12 --squash -R example-org/argocd-apps", ""),
 ]
 GITOPS_ALLOW = [
     ("git -C devops/argocd/argocd-apps push origin qa2/backend-env", ""),

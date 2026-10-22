@@ -1,0 +1,10 @@
+{
+  "org": "example-org",
+  "project": { "number": 1 },
+  "default_status": "Todo",
+  "priority_field": "Priority",
+  "required": ["assignee", "priority"],
+  "repo_from_title": true,
+  "gh": "",
+  "timeout_s": 120
+}
