@@ -3,5 +3,6 @@
   "prod_words": ["prod", "uat"],
   "gitops_markers": ["argocd", "gitops"],
   "gitops_protected_branches": ["main", "master"],
-  "block_github_release": true
+  "block_github_release": true,
+  "ref_names_safe_repos": []
 }

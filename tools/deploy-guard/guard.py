@@ -15,6 +15,11 @@ Claude Code передаёт в stdin JSON вызова инструмента. 
   * опубликованный GitHub Release катит прод;
   * ручной запуск workflow / dispatch / создание тега через API с prod/uat/release.
 
+Слово prod/uat не проверяется в пуше в репозиторий из `ref_names_safe_repos` — там имя ветки
+или тега ничего не выкатывает (например, репозиторий автотестов). Репозиторий определяется
+по адресу remote: из команды, если remote задан адресом, иначе из .git/config папки пуша
+(`git -C`, `cd` в той же команде, рабочая папка хука). Не определился — слово проверяется.
+
 Настройки — в `config.local.json` рядом со скриптом или в файле из `DEPLOY_GUARD_CONFIG`
 (пример — `config.example.json`, описание полей — README.md). Без файла работают значения
 по умолчанию.
@@ -31,6 +36,7 @@ DEFAULTS = {
     "gitops_markers": ["argocd", "gitops"],
     "gitops_protected_branches": ["main", "master"],
     "block_github_release": True,
+    "ref_names_safe_repos": [],
 }
 
 PUSH = re.compile(r"\bgit\b.*\bpush\b")
@@ -74,18 +80,20 @@ def word_re(words):
     return re.compile(r"(?<![a-z0-9])(%s)(?![a-z0-9])" % "|".join(words))
 
 
-def push_args(seg):
-    """(refspecs, флаги) из `git … push …` в сегменте или None, если это не git push.
-    Первый позиционный аргумент — remote, остальные — refspec."""
+def parse_push(seg):
+    """(опции git до `push`, позиционные аргументы push, флаги push) или None, если это не git push.
+    Обратные слеши заменяются прямыми до разбора: shlex иначе съест их в пути `C:\\…`."""
+    seg = seg.replace("\\", "/")
     try:
         toks = shlex.split(seg)
     except ValueError:
         toks = seg.split()
     low = [t.lower() for t in toks]
-    git_at = next((i for i, t in enumerate(low) if re.search(r"(^|[\\/])git(\.exe)?$", t)), None)
+    git_at = next((i for i, t in enumerate(low) if re.search(r"(^|/)git(\.exe)?$", t)), None)
     if git_at is None or "push" not in low[git_at + 1:]:
         return None
-    i = low.index("push", git_at + 1) + 1
+    push_at = low.index("push", git_at + 1)
+    i = push_at + 1
     positional, flags = [], set()
     while i < len(toks):
         t = toks[i]
@@ -99,7 +107,122 @@ def push_args(seg):
         else:
             positional.append(t)
         i += 1
+    return toks[git_at + 1:push_at], positional, flags
+
+
+def push_args(seg):
+    """(refspecs, флаги) из `git … push …` в сегменте или None, если это не git push.
+    Первый позиционный аргумент — remote, остальные — refspec."""
+    parsed = parse_push(seg)
+    if parsed is None:
+        return None
+    _, positional, flags = parsed
     return positional[1:], flags
+
+
+CD = re.compile(r"^\s*(?:cd|pushd|set-location|sl|push-location)(?:\s+(?:-(?:literal)?path\s+)?(.*?))?\s*$",
+                re.IGNORECASE)
+REMOTE_SECTION = re.compile(r'^\s*\[\s*remote\s+"([^"]+)"\s*\]')
+REMOTE_URL = re.compile(r"^\s*(?:push)?url\s*=\s*(.+?)\s*$", re.IGNORECASE)
+
+
+def local_path(p, base):
+    """Путь из команды → путь в ОС относительно base; None, если не угадать (переменные, `-`)."""
+    p = p.strip().strip("\"'").replace("\\", "/")
+    if not p or p == "-" or "$" in p or "%" in p:
+        return None
+    p = os.path.expanduser(p)
+    if os.name == "nt":  # Git Bash: /c/Users/… → C:/Users/…
+        m = re.match(r"^/([a-zA-Z])(/|$)", p)
+        if m:
+            p = m.group(1) + ":/" + p[3:]
+    if os.path.isabs(p):
+        return p
+    return os.path.join(base, p) if base else None
+
+
+def next_dir(seg, cur):
+    """Рабочая папка после сегмента: `cd X` её меняет; None — неизвестна."""
+    m = CD.match(seg)
+    if not m:
+        return cur
+    return local_path(m.group(1) or "", cur)  # `cd` без аргумента — тоже «неизвестна»
+
+
+def git_config(path):
+    """Файл config git-репозитория, в котором лежит path, или None. Понимает worktree (.git — файл)."""
+    path = os.path.abspath(path)
+    while True:
+        dot = os.path.join(path, ".git")
+        try:
+            if os.path.isdir(dot):
+                return os.path.join(dot, "config")
+            if os.path.isfile(dot):
+                with open(dot, encoding="utf-8") as fh:
+                    gitdir = fh.read().split("gitdir:", 1)[1].strip()
+                gitdir = os.path.join(path, gitdir)
+                common = os.path.join(gitdir, "commondir")
+                if os.path.isfile(common):
+                    with open(common, encoding="utf-8") as fh:
+                        gitdir = os.path.join(gitdir, fh.read().strip())
+                return os.path.join(gitdir, "config")
+        except (OSError, IndexError):
+            return None
+        parent = os.path.dirname(path)
+        if parent == path:
+            return None
+        path = parent
+
+
+def remote_urls(config):
+    """{remote: [url, pushurl…]} из .git/config."""
+    urls, current = {}, None
+    try:
+        with open(config, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if line.lstrip().startswith("["):
+                    m = REMOTE_SECTION.match(line)
+                    current = m.group(1) if m else None
+                elif current:
+                    m = REMOTE_URL.match(line)
+                    if m:
+                        urls.setdefault(current, []).append(m.group(1))
+    except OSError:
+        pass
+    return urls
+
+
+def repo_name(url):
+    """git@github.com:org/e2e-tests.git, https://…/e2e-tests, /path/e2e-tests → e2e-tests."""
+    url = url.strip().strip("\"'").replace("\\", "/").rstrip("/")
+    url = re.sub(r"\.git$", "", url, flags=re.IGNORECASE)
+    return re.split(r"[/:]", url)[-1].lower()
+
+
+def push_to_safe_repo(seg, cwd, safe):
+    """True, только если пуш точно уходит в репозиторий из списка `safe`.
+    Всё, что не разобрать однозначно (другие опции git, --repo, неизвестная папка или remote), — False."""
+    safe = {s.lower() for s in safe if s}
+    parsed = parse_push(seg) if safe else None
+    if parsed is None:
+        return False
+    git_opts, positional, flags = parsed
+    if "--repo" in flags:
+        return False
+    path, i = cwd, 0
+    while i < len(git_opts):
+        if git_opts[i] != "-C" or i + 1 >= len(git_opts):
+            return False
+        path = local_path(git_opts[i + 1], path)
+        i += 2
+    remote = positional[0] if positional else None
+    if remote and re.search(r"[/:]", remote):
+        urls = [remote]  # remote задан адресом или путём
+    else:
+        config = git_config(path) if path else None
+        found = remote_urls(config) if config else {}
+        urls = found.get(remote, []) if remote else [u for us in found.values() for u in us]
+    return bool(urls) and all(repo_name(u) in safe for u in urls)
 
 
 def gitops_push_problem(seg, protected):
@@ -130,7 +253,8 @@ def gitops_push_problem(seg, protected):
     return None
 
 
-def check_segment(seg, whole, cwd, cfg):
+def check_segment(seg, whole, cwd, cfg, seg_cwd=None):
+    """seg_cwd — папка, в которой выполняется сегмент (с учётом `cd` раньше в команде)."""
     low = seg.lower()
     release = (cfg["release_substring"] or "").lower()
     prod_word = word_re(cfg["prod_words"])
@@ -148,9 +272,10 @@ def check_segment(seg, whole, cwd, cfg):
             return ("в git push есть '%s': в CI тег или ветка с этой подстрокой (даже внутри слова) "
                     "катит ПРОД. Такие пуши делает человек." % release)
         m = prod_word.search(low) if prod_word else None
-        if m:
+        if m and not push_to_safe_repo(seg, seg_cwd, cfg["ref_names_safe_repos"]):
             return ("в git push есть слово '%s': в CI оно в теге или ветке катит прод/UAT. "
-                    "Такие пуши делает человек." % m.group(1))
+                    "Такие пуши делает человек. Выкатка не нужна — переименуй ветку без этого слова."
+                    % m.group(1))
         if gitops:
             reason = gitops_push_problem(seg, protected)
             if reason:
@@ -195,8 +320,10 @@ def main():
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) else ""
 
     cfg = load_config()
+    seg_cwd = cwd or None
     for seg in SEGMENT_SPLIT.split(command):
-        reason = check_segment(seg, command, cwd, cfg)
+        reason = check_segment(seg, command, cwd, cfg, seg_cwd)
+        seg_cwd = next_dir(seg, seg_cwd)
         if reason:
             # bytes в UTF-8: на Windows sys.stderr по умолчанию в кодировке консоли, Claude Code читает UTF-8
             sys.stderr.buffer.write((

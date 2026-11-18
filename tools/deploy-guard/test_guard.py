@@ -8,6 +8,7 @@ config.local.json: первая серия идёт на значениях по
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -108,6 +109,69 @@ CUSTOM_ALLOW = [
 ]
 
 
+def make_repo(root, name, urls, worktree=False):
+    """Папка с .git/config (remote origin → urls). worktree=True — .git-файл, как у `git worktree`."""
+    repo = os.path.join(root, name)
+    os.makedirs(os.path.join(repo, "tests"), exist_ok=True)
+    lines = ['[core]\n\tbare = false\n', '[remote "origin"]\n']
+    lines += [f"\t{key} = {url}\n" for key, url in urls]
+    lines.append("\tfetch = +refs/heads/*:refs/remotes/origin/*\n")
+    if worktree:
+        common = os.path.join(root, name + "-main.git")
+        wt = os.path.join(common, "worktrees", name)
+        os.makedirs(wt)
+        with open(os.path.join(wt, "commondir"), "w", encoding="utf-8") as fh:
+            fh.write("../..\n")
+        with open(os.path.join(repo, ".git"), "w", encoding="utf-8") as fh:
+            fh.write(f"gitdir: {wt}\n")
+        config = os.path.join(common, "config")
+    else:
+        os.makedirs(os.path.join(repo, ".git"))
+        config = os.path.join(repo, ".git", "config")
+    with open(config, "w", encoding="utf-8") as fh:
+        fh.writelines(lines)
+    return Path(repo).as_posix()
+
+
+def safe_repo_cases(root):
+    """Репозитории с «безопасными» именами веток: e2e-tests (и worktree) — да, site — нет."""
+    qa = make_repo(root, "e2e-tests", [("url", "git@github.com:example-org/e2e-tests.git")])
+    wt = make_repo(root, "e2e-tests-wt", [("url", "https://github.com/example-org/e2e-tests")], worktree=True)
+    site = make_repo(root, "site", [("url", "git@github.com:example-org/site.git")])
+    mixed = make_repo(root, "mixed", [("url", "git@github.com:example-org/e2e-tests.git"),
+                                      ("pushurl", "git@github.com:example-org/site.git")])
+    rootp = Path(root).as_posix()
+    block = [
+        ("git push origin fix/api-tests-prod-readonly", site),
+        (f"git -C {site} push origin fix/prod-x", ""),
+        (f"cd {qa} && cd ../site && git push origin fix/prod-x", ""),
+        (f"cd {qa} && git push https://github.com/example-org/site.git fix/prod-x", ""),
+        ("git push origin fix/prod-x", ""),                          # папка неизвестна
+        ("git push upstream fix/prod-x", qa),                        # такого remote нет
+        ("git -c core.x=y push origin fix/prod-x", qa),              # другие опции git — не угадываем
+        ("git push --repo=git@github.com:example-org/site.git fix/prod-x", qa),
+        ("cd $REPO && git push origin fix/prod-x", qa),
+        ("git push origin fix/prod-x", mixed),                       # pushurl ведёт в site
+        ("git push origin release-1", qa),                           # release проверяется и тут
+        ("git push --tags", qa),
+    ]
+    allow = [
+        ("git push origin fix/api-tests-prod-readonly", qa),
+        ("git push -u origin HEAD:refs/heads/fix/uat-x", qa + "/tests"),
+        (f"cd {qa} && git push origin fix/prod-x", ""),
+        (f"git -C {qa} push origin fix/prod-x", ""),
+        (f"cd {rootp} && git -C e2e-tests push origin fix/prod-x", ""),
+        (f"cd {qa}; git push origin fix/prod-x", site),
+        ("git push origin fix/prod-x", wt),
+        ("git push git@github.com:example-org/e2e-tests.git fix/prod-x", ""),
+        (f"git -C {qa.replace('/', chr(92))} push origin fix/prod-x", ""),  # путь с обратными слешами
+    ]
+    m = re.match(r"^([A-Za-z]):/(.*)$", qa)
+    if os.name == "nt" and m:  # Git Bash: /c/Users/…
+        allow.append((f"cd /{m.group(1).lower()}/{m.group(2)} && git push origin fix/prod-x", ""))
+    return block, allow
+
+
 def run(cmd, env, cwd=""):
     payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": cmd}, "cwd": cwd})
     p = subprocess.run([sys.executable, str(GUARD)], input=payload.encode("utf-8"),
@@ -153,6 +217,17 @@ def main():
         with open(custom_path, "w", encoding="utf-8") as fh:
             json.dump(CUSTOM, fh)
         b, n = series("свой конфиг", dict(os.environ, DEPLOY_GUARD_CONFIG=custom_path), CUSTOM_BLOCK, CUSTOM_ALLOW)
+        bad, total = bad + b, total + n
+
+        safe_path = os.path.join(tmp, "safe.json")
+        with open(safe_path, "w", encoding="utf-8") as fh:
+            json.dump({"ref_names_safe_repos": ["e2e-tests"]}, fh)
+        safe_block, safe_allow = safe_repo_cases(os.path.join(tmp, "repos"))
+        b, n = series("ref_names_safe_repos: prod в ветке репо автотестов можно",
+                      dict(os.environ, DEPLOY_GUARD_CONFIG=safe_path), safe_block, safe_allow)
+        bad, total = bad + b, total + n
+        # без настройки те же пуши в e2e-tests блокируются
+        b, n = series("без ref_names_safe_repos", default_env, safe_allow[:4], [])
         bad, total = bad + b, total + n
 
         broken = os.path.join(tmp, "broken.json")
