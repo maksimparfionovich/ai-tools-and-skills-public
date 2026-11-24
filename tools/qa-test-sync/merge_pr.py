@@ -16,7 +16,9 @@
   * голова PR не равна `--head-sha` (в ветку успели дописать то, что не проверялось);
   * GitHub не считает PR сливаемым без конфликтов;
   * PR трогает путь из `forbidden_paths` (CI, конфиг Playwright, гарды записи в прод);
-  * в добавленных строках есть слово из `forbidden_added_words` (например, `@smoke`).
+  * в добавленных строках есть слово из `forbidden_added_words` (например, `@smoke`);
+  * в удалённых строках есть слово из `forbidden_removed_words` (удаление теста с `@smoke`
+    или снятие тега убирает тест из постдеплойного гейта).
 
 Настройки — `config.local.json` рядом со скриптом (пример — `config.example.json`).
 """
@@ -37,7 +39,8 @@ def load_config():
         fail("нет файла настроек %s (пример — config.example.json)" % path)
     with open(path, encoding="utf-8") as f:
         cfg = json.load(f)
-    for key in ("repo", "base_branch", "branch_prefix", "forbidden_paths", "forbidden_added_words"):
+    for key in ("repo", "base_branch", "branch_prefix", "forbidden_paths", "forbidden_added_words",
+                "forbidden_removed_words"):
         if key not in cfg:
             fail("в %s нет ключа %s" % (path, key))
     return cfg
@@ -55,10 +58,18 @@ def gh(*args):
     return res.stdout
 
 
-def added_lines(diff_text):
+def changed_lines(diff_text, sign):
     for line in diff_text.splitlines():
-        if line.startswith("+") and not line.startswith("+++"):
+        if line.startswith(sign) and not line.startswith(sign * 3):
             yield line[1:]
+
+
+def check_diff_words(diff_text, cfg, number):
+    for sign, key, verb in (("+", "forbidden_added_words", "добавляет"), ("-", "forbidden_removed_words", "удаляет")):
+        for line in changed_lines(diff_text, sign):
+            for word in cfg[key]:
+                if word in line:
+                    fail("PR #%s %s строку с `%s`: %s" % (number, verb, word, line.strip()[:160]))
 
 
 def check(pr, cfg, number, head_sha):
@@ -84,11 +95,7 @@ def check(pr, cfg, number, head_sha):
     if blocked:
         fail("PR #%s трогает запрещённые для автомержа пути: %s" % (number, ", ".join(blocked)))
 
-    diff_text = gh("pr", "diff", str(number), "--repo", repo)
-    for line in added_lines(diff_text):
-        for word in cfg["forbidden_added_words"]:
-            if word in line:
-                fail("PR #%s добавляет `%s`: %s" % (number, word, line.strip()[:160]))
+    check_diff_words(gh("pr", "diff", str(number), "--repo", repo), cfg, number)
     return touched
 
 

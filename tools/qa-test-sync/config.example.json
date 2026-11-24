@@ -16,5 +16,6 @@
     "CLAUDE.md",
     "docs/ai-conventions.md"
   ],
-  "forbidden_added_words": ["@smoke", "test.only", "describe.only", "networkidle"]
+  "forbidden_added_words": ["@smoke", "test.only", "describe.only", "networkidle"],
+  "forbidden_removed_words": ["@smoke"]
 }

@@ -15,7 +15,8 @@
 - голова PR не совпадает с `--head-sha`, то есть с тем SHA, который проверяли прогоном;
 - GitHub не даёт влить PR без конфликтов;
 - PR трогает путь из `forbidden_paths`: CI, конфиг Playwright, зависимости, гарды записи в прод, `CLAUDE.md`;
-- в добавленных строках есть слово из `forbidden_added_words`: `@smoke`, `test.only`, `networkidle`.
+- в добавленных строках есть слово из `forbidden_added_words`: `@smoke`, `test.only`, `networkidle`;
+- в удалённых строках есть слово из `forbidden_removed_words`: `@smoke`. Удаление smoke-теста или снятие тега убирает тест из постдеплойного гейта. Под отказ попадает и строка с `@smoke`, которую только переформатировали: такой PR вливает человек.
 
 Мерж — только squash, с `--match-head-commit`.
 
@@ -43,7 +44,7 @@ python tools/qa-test-sync/build_image.py --merge-commit <SHA>             # со
 
 ## Настройки
 
-`config.local.json` рядом со скриптами (пример — `config.example.json`) или путь в `QA_TEST_SYNC_CONFIG`. Ключи: `repo`, `base_branch`, `branch_prefix`, `build_workflow`, `forbidden_paths` (шаблоны `fnmatch`, `*` захватывает и `/`), `forbidden_added_words`.
+`config.local.json` рядом со скриптами (пример — `config.example.json`) или путь в `QA_TEST_SYNC_CONFIG`. Ключи: `repo`, `base_branch`, `branch_prefix`, `build_workflow`, `forbidden_paths` (шаблоны `fnmatch`, `*` захватывает и `/`), `forbidden_added_words`, `forbidden_removed_words`.
 
 ## Данные задачи
 
