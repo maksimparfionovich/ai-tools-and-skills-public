@@ -31,6 +31,7 @@ QA-работе: тестирование веток и релизов на dev/
 | `env-diff` | Какие переменные окружения ждёт код ветки и каких нет в gitops нужного стенда — заранее видно, что ветка упадёт на стенде. Раскладка gitops — ArgoCD ApplicationSet + values, настраивается |
 | `menu-seed` | Снимает меню прода (Payload GraphQL) по всем локалям в JSON-сид для скрипта заливки меню и сверяет меню стенда с сидом |
 | `gh-issues` | Задачи GitHub из файла `ISSUES-*.md` через `gh`: без `--apply` — только план и проверки (исполнитель и приоритет есть, исполнителя можно назначить, метки и вариант приоритета существуют, нет дубля, нет голых маркеров); с `--apply` — задача, приоритет (поле организации), карточка на доске со статусом, сверка и ссылка обратно в файл. `set` — дописать приоритет или исполнителя уже заведённой |
+| `qa-test-sync` | Узкие скрипты для ночной задачи, которая сама актуализирует автотесты под влитые PR сервисов: `merge_pr.py` вливает только PR задачи (своя ветка, проверенная голова, без правок CI, конфигов и гардов записи в прод, без `@smoke`), `build_image.py` после мержа запускает сборку образа тестов и ждёт её. Правило `ask` на `gh pr merge` и `gh workflow run` для всего остального остаётся |
 
 У каждого инструмента и скила свой README или `SKILL.md` с настройкой и запуском.
 
@@ -53,7 +54,7 @@ Go 1.26+ (сборка `lokilogs`), bash и `git`; на Windows — Git for Wind
    | `skills/deploy-to-stand/scripts/config.example.json` | `config.local.json` рядом |
    | `skills/stand-logs/tools/loki-client/presets.example.json` | `presets.local.json` рядом с бинарём |
    | `skills/stand-topology/tools/hosts.example.txt` | `hosts.local.txt` рядом |
-   | `tools/<инструмент>/config.example.json` | `config.local.json` рядом (qa-report-lint, deploy-guard — по желанию; env-diff, menu-seed, gh-issues — обязательно) |
+   | `tools/<инструмент>/config.example.json` | `config.local.json` рядом (qa-report-lint, deploy-guard — по желанию; env-diff, menu-seed, gh-issues, qa-test-sync — обязательно) |
    | `tools/jira-mcp/config.env.example` | `config.env` рядом |
    | `tools/payload-cms-mcp/.env.example` | почта и пароль — в конфиге MCP-клиента (`.env` — только для `npm run smoke`) |
    | `tools/payload-cms-mcp/config.example.json` | `config.local.json` рядом — стенды по именам, хосты для записи, read-only хосты, локали |

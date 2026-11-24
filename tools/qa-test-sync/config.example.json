@@ -1,0 +1,20 @@
+{
+  "repo": "<org>/<tests-repo>",
+  "base_branch": "main",
+  "branch_prefix": "test/sync-",
+  "build_workflow": "build.yml",
+  "forbidden_paths": [
+    ".github/*",
+    "playwright.config.ts",
+    "package.json",
+    "package-lock.json",
+    "Dockerfile",
+    "tsconfig.json",
+    "eslint.config.mjs",
+    "scripts/*",
+    "visual/*",
+    "CLAUDE.md",
+    "docs/ai-conventions.md"
+  ],
+  "forbidden_added_words": ["@smoke", "test.only", "describe.only", "networkidle"]
+}
