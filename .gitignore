@@ -29,3 +29,6 @@ tools/jira-mcp/watchdog-hidden.vbs
 *.log
 .DS_Store
 Thumbs.db
+
+# Кейсы task-review: тексты внутренних задач
+skills/task-review/evals/cases/
