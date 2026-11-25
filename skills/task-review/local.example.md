@@ -17,6 +17,11 @@
 - Общий слой (WER, workspace-rules, wave-authoring, ORS) — репозиторий `example-org/ai-standards`,
   ветка `main`. Локальный клон — `/work/ai-standards` (`git fetch`, читать `origin/main`).
 
+## Субагенты
+
+- Субагент сверки — модель уровня Sonnet (Claude Code: Agent с `model: sonnet` или профиль
+  `exec-sonnet-medium`, если установлен; Codex — Terra/medium). Свежий взгляд — модель сессии.
+
 ## Где можно проверять самому
 
 - Только чтение: стенды `qa1`, `qa2` (логи, `kubectl get/logs`, API без записи).
