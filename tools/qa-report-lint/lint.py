@@ -97,7 +97,8 @@ BAD_VERDICT = ("FAIL", "BLOCKED", "STOP")
 
 # Встроенные имена контуров; свои стенды проекта добавляются полем `stands` настроек (apply_config).
 STANDS_BUILTIN = (r"(?<![A-Za-z])(?:(?:dev|qa|stage|uat)\d+|staging|uat)(?![A-Za-z])",
-                  r"prod", r"прод", r"local", r"локально",
+                  r"(?<![A-Za-zА-Яа-яЁё])(?:prod|production|прод[еауы]?|продом|продакшен\w*|local|localhost|локальн\w*)"
+                  r"(?![A-Za-zА-Яа-яЁё])",
                   # «CI» — только заглавными: строчное ci стоит в именах веток и заголовках PR (ci/…, «ci: …»).
                   r"(?<![A-Za-z])(?:(?-i:CI)|GitHub\s+Actions)(?![A-Za-z])")
 RE_STAND = None  # собирается в apply_config
