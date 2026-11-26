@@ -19,8 +19,9 @@
 
 ## Субагенты
 
-- Субагент сверки — модель уровня Sonnet (Claude Code: Agent с `model: sonnet` или профиль
-  `exec-sonnet-medium`, если установлен; Codex — Terra/medium). Свежий взгляд — модель сессии.
+- Субагент сверки (только для объёма) — модель уровня Sonnet (Claude Code: Agent с `model: sonnet`
+  или профиль `exec-sonnet-medium`, если установлен; Codex — Terra/medium). Свежий взгляд — модель
+  сессии.
 
 ## Где можно проверять самому
 
